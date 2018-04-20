@@ -22,7 +22,7 @@ connection.connect(function(err) {
 
 // function which prompts the user for what action they should take
 function start() {
-
+    var ids = [];
     console.log("......................ALL PRODUCTS.......................\n");
     connection.query("SELECT * FROM products", function(err, res) {
         if (err) throw err;
@@ -31,6 +31,7 @@ function start() {
         for (var i = 0; i < res.length; i++) {
             console.log(res[i].item_id + "    " + res[i].product_name + "     " + res[i].department_name + "     " + res[i].price + "     " + res[i].stock_quantity);
             console.log("-----------------------------------------------------");
+            ids.push(res[i].item_id);
         }
         inquirer
             .prompt([{
@@ -43,45 +44,47 @@ function start() {
                 name: "units"
             }])
             .then(function(answer) {
-                console.log("...........................................................\n");
-                console.log("..................Checking customer's order.................\n");
-                var sql = "SELECT stock_quantity, price, product_sales FROM products WHERE item_id=?";
-                connection.query(
-                    sql, [answer.id],
-                    function(err, res) {
-                        if (err) throw err;
-                        if (res == "") {
-                            console.log("Please, this product no exist in the database, sorry");
-                            start();
-                        }
-                        if (res[0].stock_quantity >= answer.units) {
+                if (ids.indexOf(answer.id) < 0) {
+                    console.log("Please, this product no exist in the database, sorry");
+                    start();
+                } else {
+                    console.log("...........................................................\n");
+                    console.log("..................Checking customer's order.................\n");
+                    var sql = "SELECT stock_quantity, price, product_sales FROM products WHERE item_id=?";
+                    connection.query(
+                        sql, [answer.id],
+                        function(err, res) {
+                            if (err) throw err;
 
-                            var cost = answer.units * res[0].price;
-                            var revenue = res[0].product_sales + cost;
-                            var inStock = res[0].stock_quantity - answer.units;
-                            // Modify the products table so that there's a product_sales column and modify the bamazonCustomer.js app so that this value is updated with each individual products total revenue from each sale.
-                            console.log("Update product in stock...\n");
-                            connection.query(
-                                "UPDATE products SET ? WHERE ?", [{
-                                        stock_quantity: inStock,
-                                        product_sales: revenue
-                                    },
-                                    {
-                                        item_id: answer.id
+                            if (res[0].stock_quantity >= answer.units) {
+
+                                var cost = answer.units * res[0].price;
+                                var revenue = res[0].product_sales + cost;
+                                var inStock = res[0].stock_quantity - answer.units;
+                                // Modify the products table so that there's a product_sales column and modify the bamazonCustomer.js app so that this value is updated with each individual products total revenue from each sale.
+                                console.log("Update product in stock...\n");
+                                connection.query(
+                                    "UPDATE products SET ? WHERE ?", [{
+                                            stock_quantity: inStock,
+                                            product_sales: revenue
+                                        },
+                                        {
+                                            item_id: answer.id
+                                        }
+                                    ],
+                                    function(err, res) {
+                                        console.log("The cost of your purchase is: $" + cost + ".00");
+                                        start();
                                     }
-                                ],
-                                function(err, res) {
-                                    console.log("The cost of your purchase is: $" + cost + ".00");
-                                    start();
-                                }
-                            );
+                                );
+                            }
+                            if (res[0].stock_quantity < answer.units) {
+                                console.log("Insufficient quantity!..\n");
+                                start();
+                            }
                         }
-                        if (res[0].stock_quantity < answer.units) {
-                            console.log("Insufficient quantity!..\n");
-                            start();
-                        }
-                    }
-                );
+                    );
+                }
             });
     });
 }
