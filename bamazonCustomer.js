@@ -44,7 +44,7 @@ function start() {
                 name: "units"
             }])
             .then(function(answer) {
-                if (ids.indexOf(answer.id) < 0) {
+                if (ids.indexOf(parseInt(answer.id)) < 0) {
                     console.log("Please, this product no exist in the database, sorry");
                     start();
                 } else {
