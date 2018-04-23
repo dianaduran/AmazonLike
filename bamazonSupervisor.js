@@ -43,7 +43,7 @@ function start() {
 function ViewProductsSaleDepartment() {
 
     var query = "SELECT departments.department_id, departments.department_name,departments. over_head_costs, products.product_sales, products.product_sales- departments. over_head_costs as total_profit";
-    query += " FROM departments INNER JOIN products on departments.department_name=products.department_name";
+    query += " FROM departments INNER JOIN products on departments.department_name=products.department_name GROUP BY department_name";
     connection.query(query, function(err, res) {
         if (err) throw err;
 
